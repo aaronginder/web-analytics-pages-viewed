@@ -208,3 +208,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local development environment
+flink-*
+kafka_*
+pipeline/
+backup.py
+.vscode/
+samples/

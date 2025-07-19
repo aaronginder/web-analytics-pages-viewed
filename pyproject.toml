@@ -8,9 +8,10 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 copier = "^9.4.1"
-apache-beam = {extras = ["flink"], version = "^2.66.0"}
+apache-beam = {version = "2.53.0", extras = ["flink"]}
+kafka-python = "^2.2.15"
 
 [build-system]
 requires = ["poetry-core"]

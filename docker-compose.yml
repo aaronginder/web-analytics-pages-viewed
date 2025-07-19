@@ -1,0 +1,46 @@
+version: '3.8'
+name: "web-analytics-pages-viewed"
+services:
+  zookeeper:
+    container_name: zookeeper-node
+    image: confluentinc/cp-zookeeper:7.4.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    container_name: kafka-node
+    image: confluentinc/cp-kafka:7.4.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  producer:
+    container_name: producer
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.producer
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BROKER_SERVERS: kafka:9092
+    command: ["python", "pipeline/producer.py", "--bootstrap_servers", "kafka:9092", "--topic", "web-analytics-events", "--num_events", "1000"]
+
+  # expansion-service:
+  #   image: openjdk:8-jre
+  #   container_name: expansion-service
+  #   command: ["java", "-jar", "/jars/beam-sdks-java-io-expansion-service-2.53.0.jar", "8097"]
+  #   ports:
+  #     - "8097:8097"
+  #   volumes:
+  #     - ./pipeline/jars/beam-sdks-java-io-expansion-service-2.53.0.jar:/jars/beam-sdks-java-io-expansion-service-2.53.0.jar
+  #   depends_on:
+  #     - kafka
