@@ -2,9 +2,16 @@ name: Release
 
 on:
   workflow_dispatch:
-
-env:
-  RELEASE_TYPE: stable
+    inputs:
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'stable'
+        type: choice
+        options:
+        - stable
+        - alpha
+        - beta
 
 jobs:
   release:
@@ -34,7 +41,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SEMANTIC_TOKEN }}
         run: |
-          RELEASE_TYPE="${{ github.event.inputs.release_type || 'main' }}"
+          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
           if [[ "$RELEASE_TYPE" == "alpha" ]]; then
             semantic-release version --prerelease alpha
           elif [[ "$RELEASE_TYPE" == "beta" ]]; then

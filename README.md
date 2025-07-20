@@ -58,9 +58,66 @@ mvn clean package;
 
 4. Execute the Apache Beam pipeline locally or execute the jar: `java -jar web-analytics-pages-viewed-java/target/web-analytics-pages-viewed-java-bundled-0.1.jar`
 
+<img src="./assets/docker_containers.png" height="150">
+
 ## Data Model
 
-:rocket: Coming soon!
+### Incoming Payload
+
+```json
+{
+    "event_name": "[REQUIRED] Name of event. Always page_view for this pipeline",
+    "user_id": "[REQUIRED] Unique user id",
+    "page_id": "[REQUIRED] Idenifier for the web page",
+    "timestamp_ms": "[REQUIRED] Timestamp in micros when the event occurred",
+    "event_params": {
+        "engaged_time": "[OPTIONAL] Seconds the user was engaged on the page",
+        "page_title": "[OPTIONAL] User friendly, free-text title of the page",
+        "traffic_source": "[OPTIONAL] Channel arrived to the website persisting per session"
+    }
+}
+```
+
+Sample payload:
+
+```json
+{
+    "event_name": "page_view",
+    "user_id": "user_6",
+    "page_id": "page_11",
+    "timestamp_ms": 1752999940667,
+    "event_params": {
+        "engaged_time": 5,
+        "page_title": "Title for page_13",
+        "traffic_source": "organic"
+    }
+}
+```
+
+### Output Payload
+
+```json
+{
+    "event_name": "[REQUIRED] Name of event. Always page_view for this pipeline",
+    "user_id": "[REQUIRED] Unique user id",
+    "page_id": "[REQUIRED] Idenifier for the web page",
+    "timestamp_ms": "[REQUIRED] Timestamp in micros when the event occurred",
+    "time_spent_on_page_seconds": "[REQUIRED] Duration the user spent on a web page in seconds",
+    "sequence_number": "[REQUIRED] The ordinal position of the page during the session",
+    "session_id": "[REQUIRED] Unique session identifier",
+    "event_params": {
+        "engaged_time": "[OPTIONAL] Seconds the user was engaged on the page",
+        "page_title": "[OPTIONAL] User friendly, free-text title of the page",
+        "traffic_source": "[OPTIONAL] Channel arrived to the website persisting per session"
+    }
+}
+```
+
+Sample payload:
+
+```json
+
+```
 
 ## Architecture
 
@@ -72,6 +129,9 @@ flowchart LR
     B -->|Streams Events| C[Web Analytics Subscriber<br/>Container]
     C -->|Processes & Outputs| D[Stdout]
 ```
+
+- A Docker container executing a Python application to publish events into a Kafka topic within 5 seconds (based on a random uniform distribution). Each message is a JSON payload and the message is published with the `user id` as the key
+- 
 
 ### Pipeline Design
 
@@ -114,6 +174,8 @@ To run tests:
 cd web-analytics-pages-viewed-java;
 mvn test;
 ```
+
+:soon: Tests have not yet been written for this repository. They will be written in a future release.
 
 ## Acknowledgements
 
