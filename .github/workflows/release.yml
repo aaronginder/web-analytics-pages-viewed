@@ -11,7 +11,6 @@ on:
         options:
         - stable
         - alpha
-        - beta
 
 jobs:
   release:
@@ -42,9 +41,9 @@ jobs:
           GH_TOKEN: ${{ secrets.SEMANTIC_TOKEN }}
         run: |
           if [[ "${{ github.event.inputs.release_type }}" == "alpha" ]]; then
-            semantic-release version --prerelease
+            semantic-release version --prerelease alpha
           elif [[ "${{ github.event.inputs.release_type }}" == "beta" ]]; then
-            semantic-release version --prerelease
-          else
-            semantic-release version
+            semantic-release version --prerelease alpha
+          elif [[ "${{ github.event.inputs.release_type }}" == "stable" ]]; then
+            semantic-release version stable
           fi

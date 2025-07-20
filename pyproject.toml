@@ -12,8 +12,19 @@ python = "^3.11"
 copier = "^9.4.1"
 apache-beam = {version = "2.53.0", extras = ["flink"]}
 kafka-python = "^2.2.15"
-semantic-release = "^0.1.0"
+python-semantic-release = "^10.2.0"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.semantic_release]
+version_variable = "pyproject.toml:version"
+upload_to_pypi = false
+upload_to_release = true
+build_command = "pip install poetry && poetry build"
+
+[tool.semantic_release.branches]
+main = { match = "main", prerelease = false }
+develop = { match = "develop", prerelease = true, prerelease_token = "alpha" }
+
