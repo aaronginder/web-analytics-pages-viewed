@@ -12,6 +12,7 @@ python = "^3.11"
 copier = "^9.4.1"
 apache-beam = {version = "2.53.0", extras = ["flink"]}
 kafka-python = "^2.2.15"
+semantic-release = "^0.1.0"
 
 [build-system]
 requires = ["poetry-core"]

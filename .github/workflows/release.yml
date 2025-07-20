@@ -30,7 +30,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -41,11 +41,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.SEMANTIC_TOKEN }}
         run: |
-          RELEASE_TYPE="${{ github.event.inputs.release_type }}"
-          if [[ "$RELEASE_TYPE" == "alpha" ]]; then
-            semantic-release version --prerelease alpha
-          elif [[ "$RELEASE_TYPE" == "beta" ]]; then
-            semantic-release version --prerelease beta
+          if [[ "${{ github.event.inputs.release_type }}" == "alpha" ]]; then
+            semantic-release version --prerelease
+          elif [[ "${{ github.event.inputs.release_type }}" == "beta" ]]; then
+            semantic-release version --prerelease
           else
             semantic-release version
           fi
