@@ -48,8 +48,6 @@ mvn clean package;
 
 ## Usage
 
-:rocket: Coming soon!
-
 1. Start your Docker daemon
 
 2. Start the Zookeeper and Kafka broker where source messages will be published into: `docker-compose up kafka -d`
@@ -66,14 +64,14 @@ mvn clean package;
 
 ```json
 {
-    "event_name": "[REQUIRED] Name of event. Always page_view for this pipeline",
-    "user_id": "[REQUIRED] Unique user id",
-    "page_id": "[REQUIRED] Idenifier for the web page",
-    "timestamp_ms": "[REQUIRED] Timestamp in micros when the event occurred",
+    "event_name":           "[REQUIRED] Name of event. Always page_view for this pipeline",
+    "user_id":              "[REQUIRED] Unique user id",
+    "page_id":              "[REQUIRED] Idenifier for the web page",
+    "timestamp_ms":         "[REQUIRED] Timestamp in micros when the event occurred",
     "event_params": {
-        "engaged_time": "[OPTIONAL] Seconds the user was engaged on the page",
-        "page_title": "[OPTIONAL] User friendly, free-text title of the page",
-        "traffic_source": "[OPTIONAL] Channel arrived to the website persisting per session"
+        "engaged_time":     "[OPTIONAL] Seconds the user was engaged on the page",
+        "page_title":       "[OPTIONAL] User friendly, free-text title of the page",
+        "traffic_source":   "[OPTIONAL] Channel arrived to the website persisting per session"
     }
 }
 ```
@@ -98,17 +96,17 @@ Sample payload:
 
 ```json
 {
-    "event_name": "[REQUIRED] Name of event. Always page_view for this pipeline",
-    "user_id": "[REQUIRED] Unique user id",
-    "page_id": "[REQUIRED] Idenifier for the web page",
-    "timestamp_ms": "[REQUIRED] Timestamp in micros when the event occurred",
-    "time_spent_on_page_seconds": "[REQUIRED] Duration the user spent on a web page in seconds",
-    "sequence_number": "[REQUIRED] The ordinal position of the page during the session",
-    "session_id": "[REQUIRED] Unique session identifier",
+    "event_name":                   "[REQUIRED] Name of event. Always page_view for this pipeline",
+    "user_id":                      "[REQUIRED] Unique user id",
+    "page_id":                      "[REQUIRED] Idenifier for the web page",
+    "timestamp_ms":                 "[REQUIRED] Timestamp in micros when the event occurred",
+    "time_spent_on_page_seconds":   "[REQUIRED] Duration the user spent on a web page in seconds",
+    "sequence_number":              "[REQUIRED] The ordinal position of the page during the session",
+    "session_id":                   "[REQUIRED] Unique session identifier",
     "event_params": {
-        "engaged_time": "[OPTIONAL] Seconds the user was engaged on the page",
-        "page_title": "[OPTIONAL] User friendly, free-text title of the page",
-        "traffic_source": "[OPTIONAL] Channel arrived to the website persisting per session"
+        "engaged_time":             "[OPTIONAL] Seconds the user was engaged on the page",
+        "page_title":               "[OPTIONAL] User friendly, free-text title of the page",
+        "traffic_source":           "[OPTIONAL] Channel arrived to the website persisting per session"
     }
 }
 ```
@@ -131,7 +129,6 @@ flowchart LR
 ```
 
 - A Docker container executing a Python application to publish events into a Kafka topic within 5 seconds (based on a random uniform distribution). Each message is a JSON payload and the message is published with the `user id` as the key
-- 
 
 ### Pipeline Design
 
