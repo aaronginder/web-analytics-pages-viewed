@@ -1,0 +1,12 @@
+dev:
+  env: dev
+  data_project_id: aaronginder
+  data_product_name: dp_001_adobe_ee_products_viewed
+prep:
+  env: prep
+  data_project_id: aaronginder
+  data_product_name: dp_001_adobe_ee_products_viewed
+prod:
+  env: prod
+  data_project_id: aaronginder
+  data_product_name: dp_001_adobe_ee_products_viewed

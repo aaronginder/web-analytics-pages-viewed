@@ -1,0 +1,20 @@
+[project]
+name = "pages-viewed-streaming"
+version = "0.1.0"
+description = "Streaming pipeline for ingesting data from GA4 into Pub/Sub and transforming to return a list of page view events and duration spent on a page."
+authors = [
+    {name = "Aaron Ginder QMK R",email = "aaronginder@hotmail.co.uk"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "apache-beam[gcp] (>=2.66.0,<3.0.0)",
+    "ipykernel (>=6.30.0,<7.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "pipelines"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

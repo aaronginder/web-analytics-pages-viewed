@@ -1,0 +1,16 @@
+# config/pipeline_config.yaml
+pipeline:
+  name: "pages-viewed-streaming"
+  project: "{{ data_project_id }}"
+  region: "europe-west2"
+  
+pubsub:
+  input_subscription: "projects/{{ data_project_id }}/subscriptions/ga4_web_app"
+  
+validation:
+  required_fields:
+    - user_pseudo_id
+    - event_name
+  
+filtering:
+  customer_id_field: "subscriber_number"
