@@ -1,0 +1,57 @@
+name: "Lint and Test"
+on:
+  push:
+    branches-ignore:
+      - "main"
+      - "master"
+    tags-ignore:
+      - "**"
+  pull_request:
+    branches-ignore:
+      - "main"
+      - "master"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.repository }}-${{ github.head_ref || github.sha }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+  security-events: read
+  repository-projects: write
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    uses: aaronginder/workflow-factory/.github/workflows/lint-and-test.yml@main
+    with:
+      aws_role_arn: ${{ vars.AWS_ROLE_ARN }}
+      bucket_name: aaronginder-tf-states
+      bucket_prefix: ${{ github.event.repository.name}}
+      project: aaronginder
+    secrets:
+      GH_TOKEN: ${{ secrets.GH_PAT }}
+  analyse:
+    runs-on: ubuntu-24.04
+    permissions:
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - python
+          - java
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+      - uses: github/codeql-action/autobuild@v3
+      - uses: github/codeql-action/analyze@v3
+
