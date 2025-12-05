@@ -1,5 +1,0 @@
-apache-beam[gcp]==2.66.0
-coverage
-pycodestyle
-jinja2
-pyyaml

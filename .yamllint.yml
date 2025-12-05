@@ -1,0 +1,16 @@
+extends: default
+ignore: |
+  dist/
+  build/
+  vendor/
+  generated/
+  charts/generated/
+  .venv/
+
+rules:
+  line-length:
+    max: 160
+    level: warning
+  truthy: disable
+  comments-indentation: disable
+  document-start: disable

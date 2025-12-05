@@ -21,7 +21,7 @@ permissions:
   issues: write
   pull-requests: write
   id-token: write
-  security-events: read
+  security-events: write
   repository-projects: write
 
 jobs:
@@ -33,8 +33,7 @@ jobs:
       bucket_name: aaronginder-tf-states
       bucket_prefix: ${{ github.event.repository.name}}
       project: aaronginder
-    secrets:
-      GH_TOKEN: ${{ secrets.GH_PAT }}
+    secrets: inherit
   analyse:
     runs-on: ubuntu-24.04
     permissions:
@@ -48,8 +47,12 @@ jobs:
           - java
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: github/codeql-action/init@v3
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
       - uses: github/codeql-action/autobuild@v3

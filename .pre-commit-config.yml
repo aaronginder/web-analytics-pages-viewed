@@ -1,0 +1,57 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trailing Whitespace
+      - id: end-of-file-fixer
+        name: End of File Fixer
+      - id: check-yaml
+        name: Check Yaml
+      - id: check-json
+        name: Check JSON
+      - id: check-added-large-files
+        name: Check Added Large Files
+      - id: check-merge-conflict
+        name: Check Merge Conflict
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.6.4
+    hooks:
+      - id: ruff
+        name: Ruff Lint
+      - id: ruff-format
+        name: Ruff Format
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        name: YAML Lint
+        files: \.ya?ml$
+        exclude: |
+          (?x)^(
+            dist/|
+            build/|
+            vendor/|
+            generated/|
+            charts/generated/|
+            \.venv/
+          )
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.3
+    hooks:
+      - id: actionlint
+        name: GitHub Actions Lint
+        files: \.github/workflows/.*\.ya?ml$
+
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.88.1
+    hooks:
+      - id: terraform_fmt
+        name: Terraform Format
+      - id: terraform_validate
+        name: Terraform Validate
+        args: [--hook-config=--retry-once-with-cleanup=true]
+        exclude: \.terraform/|\.terraform.lock\.hcl
