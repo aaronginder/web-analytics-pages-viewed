@@ -6,19 +6,21 @@ import java.util.List;
 import java.util.UUID;
 import org.joda.time.Duration;
 import org.joda.time.Instant;
-import org.apache.beam.sdk.transforms.windowing.*;
-import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.PTransform;
-import org.apache.beam.sdk.transforms.ParDo;
+import org.apache.beam.sdk.transforms.windowing.AfterProcessingTime;
 import org.apache.beam.sdk.transforms.windowing.AfterWatermark;
 import org.apache.beam.sdk.transforms.windowing.Sessions;
 import org.apache.beam.sdk.transforms.windowing.Window;
+import org.apache.beam.sdk.transforms.DoFn;
+import org.apache.beam.sdk.transforms.PTransform;
+import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
 import org.json.JSONObject;
+import com.example.model.Event;
+import com.example.model.EventParams;
 
 
-public class AggregateEvents extends PTransform<PCollection<KV<String, String>>, PCollection<Iterable<String>>> {
+public class AggregateEvents extends PTransform<PCollection<KV<String, Event>>, PCollection<Iterable<String>>> {
     /**
      * Applies the transformation to aggregate events by session ID.
      *
@@ -32,66 +34,80 @@ public class AggregateEvents extends PTransform<PCollection<KV<String, String>>,
      */
 
     @Override
-    public PCollection<Iterable<String>> expand(PCollection<KV<String, String>> input) {
+    public PCollection<Iterable<String>> expand(PCollection<KV<String, Event>> input) {
         return input
-                .apply("CreateSession", Window.<KV<String, String>>into(Sessions.withGapDuration(Duration.standardSeconds(60)))
-                    .triggering(AfterWatermark.pastEndOfWindow()
-                        .withEarlyFirings(AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(30)))
-                    )
-                    .discardingFiredPanes()
-                    .withAllowedLateness(Duration.standardSeconds(0))
+                .apply("CreateSession", Window.<KV<String, Event>>into(Sessions.withGapDuration(Duration.standardSeconds(60)))
+                        .triggering(AfterWatermark.pastEndOfWindow()
+                                .withEarlyFirings(AfterProcessingTime.pastFirstElementInPane().plusDelayOf(Duration.standardSeconds(30)))
+                        )
+                        .accumulatingFiredPanes()
+                        .withAllowedLateness(Duration.standardSeconds(0))
                 )
                 .apply("GroupBySessionId", org.apache.beam.sdk.transforms.GroupByKey.create())
                 .apply("AddTimeSpentOnPage", ParDo.of(new AddTimeSpentOnPageFn()));
     }
     
-    static class AddTimeSpentOnPageFn extends DoFn<KV<String, Iterable<String>>, Iterable<String>> {
+    static class AddTimeSpentOnPageFn extends DoFn<KV<String, Iterable<Event>>, Iterable<String>> {
         @ProcessElement
-        public void processElement(@Element KV<String, Iterable<String>> element, OutputReceiver<Iterable<String>> receiver) {
+        public void processElement(@Element KV<String, Iterable<Event>> element, OutputReceiver<Iterable<String>> receiver) {
             String sessionId = UUID.randomUUID().toString();
-            List<JSONObject> parsedEvents = new ArrayList<>();
-            
-            // Parse all events in the group
-            for (String event : element.getValue()) {
-                parsedEvents.add(new JSONObject(event));
-            }
-            
-            // Sort by timestamp
-            parsedEvents.sort(Comparator.comparingLong(e -> e.getLong("timestamp_ms")));
-            
-            List<JSONObject> results = new ArrayList<>();
-            for (int i = 0; i < parsedEvents.size(); i++) {
-                JSONObject source = parsedEvents.get(i);               // keep original intact
-                JSONObject event  = new JSONObject(source.toString()); // work on a copy
+            List<Event> events = new ArrayList<>();
 
-                long eventTsMs = source.getLong("timestamp_ms");
-                event.put("timestamp_iso", Instant.ofEpochMilli(eventTsMs).toString());
-                event.put("processing_timestamp_iso", Instant.now().toString());
+            for (Event event : element.getValue()) {
+                if (event != null && event.getTimestampMs() != null) {
+                    events.add(event);
+                }
+            }
+            if (events.isEmpty()) {
+                return;
+            }
+
+            // Sort by timestamp
+            events.sort(Comparator.comparingLong(Event::getTimestampMs));
+
+            List<JSONObject> results = new ArrayList<>();
+            for (int i = 0; i < events.size(); i++) {
+                Event ev = events.get(i);
+
+                long eventTsMs = ev.getTimestampMs();
+                JSONObject out = new JSONObject();
+                out.put("event_name", ev.getEventName());
+                out.put("user_id", ev.getUserId());
+                out.put("page_id", ev.getPageId());
+                out.put("timestamp_iso", Instant.ofEpochMilli(eventTsMs).toString());
+                out.put("processing_timestamp_iso", Instant.now().toString());
 
                 double timeSpentSec;
-                if (i < parsedEvents.size() - 1) {
-                    long nextTsMs = parsedEvents.get(i + 1).getLong("timestamp_ms");
-                    timeSpentSec = (nextTsMs - eventTsMs) / 1000.0; // gap-based dwell
+                if (i < events.size() - 1) {
+                    long nextTsMs = events.get(i + 1).getTimestampMs();
+                    timeSpentSec = (nextTsMs - eventTsMs) / 1000.0;
                 } else {
-                    JSONObject eventParams = event.optJSONObject("event_params");
-                    long engaged = (eventParams != null) ? eventParams.optLong("engaged_time", 0L) : 0L;
-                    timeSpentSec = engaged; // last event fallback
+                    EventParams params = ev.getEventParams();
+                    long engaged = (params != null && params.getEngagedTime() != null) ? params.getEngagedTime() : 0L;
+                    timeSpentSec = engaged;
                 }
 
-                event.put("time_spent_on_page_seconds", timeSpentSec);
-                event.put("sequence_number", i + 1);
-                event.put("session_id", sessionId);
+                out.put("time_spent_on_page_seconds", timeSpentSec);
+                out.put("sequence_number", i + 1);
+                out.put("session_id", sessionId);
 
                 if (i > 0) {
-                    long prevTsMs = parsedEvents.get(i - 1).getLong("timestamp_ms");
-                    event.put("previous_timestamp_iso", Instant.ofEpochMilli(prevTsMs).toString());
+                    long prevTsMs = events.get(i - 1).getTimestampMs();
+                    out.put("previous_timestamp_iso", Instant.ofEpochMilli(prevTsMs).toString());
                 }
 
-                // Drop millis fields from output
-                event.remove("timestamp_ms");
-                event.remove("previous_timestamp_ms");
+                // event_params passthrough
+                EventParams params = ev.getEventParams();
+                JSONObject paramsOut = new JSONObject();
+                if (params != null) {
+                    if (params.getEngagedTime() != null) paramsOut.put("engaged_time", params.getEngagedTime());
+                    if (params.getPageTitle() != null) paramsOut.put("page_title", params.getPageTitle());
+                    if (params.getTrafficSource() != null) paramsOut.put("traffic_source", params.getTrafficSource());
+                    if (params.getTestEvent() != null) paramsOut.put("test_event", params.getTestEvent());
+                }
+                out.put("event_params", paramsOut);
 
-                results.add(event);
+                results.add(out);
             }
             
             // Convert JSONObjects to strings correctly

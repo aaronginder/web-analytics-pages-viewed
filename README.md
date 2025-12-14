@@ -23,8 +23,10 @@ Processes synthetic web page view events and calculates the time a user spends o
 
 ## Project Structure
 
-- `services/java-pipeline`: Java Beam pipeline (source under `src/main/java/com/example`)
-- `services/producer`: Python Kafka producer
+- `services/java-pipeline`
+    - `src/main/java/com/example`: pipeline transforms (`ReadFromKafka`, `ValidateEvents`, `FilterEvents`, `AggregateEvents`, `WebAnalyticsPipeline`)
+    - `src/main/java/com/example/model`: POJO models (`Event`, `EventParams`)
+- `services/producer`: Python Kafka producer for synthetic events
 - `infrastructure/docker/docker-compose.yml`: Zookeeper, Kafka, producer services
 - `assets/`: images used in docs
 
@@ -88,7 +90,8 @@ Specification:
     "event_params": {
         "engaged_time":     "[Optional] Seconds the user was engaged on the page",
         "page_title":       "[Optional] User friendly, free-text title of the page",
-        "traffic_source":   "[Optional] Channel arrived to the website persisting per session"
+        "traffic_source":   "[Optional] Channel arrived to the website persisting per session",
+        "test_event":       "[Required] Boolean; true events are filtered out downstream"
     }
 }
 ```
@@ -104,7 +107,8 @@ Example:
     "event_params": {
         "engaged_time": 5,
         "page_title": "Title for page_13",
-        "traffic_source": "organic"
+        "traffic_source": "organic",
+        "test_event": false
     }
 }
 ```
@@ -148,15 +152,17 @@ Example:
     "event_params": {
         "engaged_time": 5,
         "page_title": "Title for page_13",
-        "traffic_source": "organic"
+        "traffic_source": "organic",
+        "test_event": false
     }
 }
 ```
 
 Notes:
 
-- Session windows use a 60s inactivity gap.
-- `time_spent_on_page_seconds` is the gap to the next event; the last event in a session falls back to `engaged_time` (if present) or 0.
+- Session windows use a 60s inactivity gap with early firing at +30s after first element per pane.
+- Validation: drop events missing `event_params`, missing/empty `page_title`, or missing `test_event`; filtering removes events where `test_event == true`.
+- `time_spent_on_page_seconds`: for each sorted session, interior events use the gap to the next event; the final event in the session falls back to its `engaged_time` value (else `0`).
 
 ## Architecture
 
