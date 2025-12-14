@@ -21,26 +21,23 @@ services:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "kafka:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   producer:
     container_name: producer
     build:
-      context: .
-      dockerfile: ./Dockerfile.producer
+      context: ../../services/producer
+      dockerfile: Dockerfile
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     environment:
       KAFKA_BROKER_SERVERS: kafka:9092
+      PYTHONUNBUFFERED: "1"
     command: ["python", "pipeline/producer.py", "--bootstrap_servers", "kafka:9092", "--topic", "web-analytics-events", "--num_events", "1000"]
-
-  # expansion-service:
-  #   image: openjdk:8-jre
-  #   container_name: expansion-service
-  #   command: ["java", "-jar", "/jars/beam-sdks-java-io-expansion-service-2.53.0.jar", "8097"]
-  #   ports:
-  #     - "8097:8097"
-  #   volumes:
-  #     - ./pipeline/jars/beam-sdks-java-io-expansion-service-2.53.0.jar:/jars/beam-sdks-java-io-expansion-service-2.53.0.jar
-  #   depends_on:
-  #     - kafka

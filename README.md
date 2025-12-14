@@ -1,6 +1,6 @@
 # Web Analytics Pages Viewed
 
-<img src="./assets/header.png" height="400">
+<img src="./assets/header.png" height="400" alt="Header">
 
 ## Table of Contents
 
@@ -19,64 +19,81 @@
 
 ## Description
 
-Processes synthetic web page view events and calculates the time a user has spent on the page in a streaming manner. Events will be emitted as outputs to show how long a user has been viewing a page within a sequence.
+Processes synthetic web page view events and calculates the time a user spends on pages in a streaming manner. A Python producer emits synthetic `page_view` events into Kafka; a Java Apache Beam (DirectRunner) pipeline reads, sessions (60s gap), enriches, and outputs per-page dwell times.
 
 ## Project Structure
 
-- `web-analytics-pages-viewed-java`: a Java implementation of the analytics pipeline
-- `src/main/java/com/example`: data pipeline code
-- `src/main/java/com/example`: data pipeline test code
-- `pom.xml`: Maven project configuration
-- `docker-compose.yml`: Docker configuration for Kafka and Zookeeper
+- `services/java-pipeline`: Java Beam pipeline (source under `src/main/java/com/example`)
+- `services/producer`: Python Kafka producer
+- `infrastructure/docker/docker-compose.yml`: Zookeeper, Kafka, producer services
+- `assets/`: images used in docs
 
 ### Pre-requisites
 
-| Software      | Version       |
-|---------------|---------------|
-| OpenJDK       | `11`          |
-| Maven         | `3.6+`        |
-| Docker        | `latest`      |
+| Software | Version |
+| --- | --- |
+| OpenJDK | `11` |
+| Maven | `3.6+` |
+| Docker | `latest` |
 
 ## Installation
 
-Execute the commands below to install the python packages.
+Build the Java pipeline (shaded jar):
 
 ```bash
-cd web-analytics-pages-viewed-java;
-mvn clean package;
+cd services/java-pipeline
+mvn clean package
 ```
 
 ## Usage
 
-1. Start your Docker daemon
+1. Start Docker Desktop.
+2. Start Zookeeper, Kafka, and the producer:
 
-2. Start the Zookeeper and Kafka broker where source messages will be published into: `docker-compose up kafka -d`
+     ```bash
+     docker-compose -f infrastructure/docker/docker-compose.yml up -d
+     ```
 
-3. Start the producer container to publish messages into the kafka broker you just started: `docker-compose up producer -d`
+     Kafka listeners:
+     - Internal (containers): `kafka:9092`
+     - Host: `localhost:29092`
 
-4. Execute the Apache Beam pipeline locally or execute the jar: `java -jar web-analytics-pages-viewed-java/target/web-analytics-pages-viewed-java-bundled-0.1.jar`
+3. Verify messages are flowing:
 
-<img src="./assets/docker_containers.png" height="150">
+     ```bash
+     docker exec -it kafka-node kafka-console-consumer \
+         --bootstrap-server localhost:9092 \
+         --topic web-analytics-events \
+         --from-beginning --max-messages 5
+     ```
+
+4. Run the Beam pipeline from the host (uses `localhost:29092` by default):
+
+     ```bash
+     java -jar services/java-pipeline/target/web-analytics-pages-viewed-java-0.1-shaded.jar
+     ```
 
 ## Data Model
 
 ### Incoming Payload
 
+Specification:
+
 ```json
 {
-    "event_name":           "[REQUIRED] Name of event. Always page_view for this pipeline",
-    "user_id":              "[REQUIRED] Unique user id",
-    "page_id":              "[REQUIRED] Idenifier for the web page",
-    "timestamp_ms":         "[REQUIRED] Timestamp in micros when the event occurred",
+    "event_name":           "[Required] Name of event. Always page_view for this pipeline",
+    "user_id":              "[Required] Unique user id",
+    "page_id":              "[Required] Idenifier for the web page",
+    "timestamp_ms":         "[Required] Timestamp in micros when the event occurred",
     "event_params": {
-        "engaged_time":     "[OPTIONAL] Seconds the user was engaged on the page",
-        "page_title":       "[OPTIONAL] User friendly, free-text title of the page",
-        "traffic_source":   "[OPTIONAL] Channel arrived to the website persisting per session"
+        "engaged_time":     "[Optional] Seconds the user was engaged on the page",
+        "page_title":       "[Optional] User friendly, free-text title of the page",
+        "traffic_source":   "[Optional] Channel arrived to the website persisting per session"
     }
 }
 ```
 
-Sample payload:
+Example:
 
 ```json
 {
@@ -92,30 +109,54 @@ Sample payload:
 }
 ```
 
-### Output Payload
+### Output Payload (enriched)
+
+`timestamp_ms` is used internally for calculations and removed from the emitted event.
+
+Specification:
 
 ```json
 {
-    "event_name":                   "[REQUIRED] Name of event. Always page_view for this pipeline",
-    "user_id":                      "[REQUIRED] Unique user id",
-    "page_id":                      "[REQUIRED] Idenifier for the web page",
-    "timestamp_ms":                 "[REQUIRED] Timestamp in micros when the event occurred",
-    "time_spent_on_page_seconds":   "[REQUIRED] Duration the user spent on a web page in seconds",
-    "sequence_number":              "[REQUIRED] The ordinal position of the page during the session",
-    "session_id":                   "[REQUIRED] Unique session identifier",
+    "event_name":           "[Required] Name of event. Always page_view for this pipeline",
+    "user_id":              "[Required] Unique user id",
+    "page_id":              "[Required] Idenifier for the web page",
+    "timestamp_ms":         "[Required] Timestamp in micros when the event occurred",
     "event_params": {
-        "engaged_time":             "[OPTIONAL] Seconds the user was engaged on the page",
-        "page_title":               "[OPTIONAL] User friendly, free-text title of the page",
-        "traffic_source":           "[OPTIONAL] Channel arrived to the website persisting per session"
+        "engaged_time":     "[Optional] Seconds the user was engaged on the page",
+        "page_title":       "[Optional] User friendly, free-text title of the page",
+        "traffic_source":   "[Optional] Channel arrived to the website persisting per session"
+    },
+    "processing_timestamp_iso": "[Required] Timestamp the event was processed. This shows the processing lag of the even",
+    "time_spent_on_page_seconds": "[Required] Amount of seconds the page was viewed by the user",
+    "sequence_number": "[Required] The number the page was viewed in the sequence"
+}
+```
+
+Example:
+
+```json
+{
+    "event_name": "page_view",
+    "user_id": "user_6",
+    "page_id": "page_11",
+    "timestamp_iso": "2025-12-13T21:22:57.046Z",
+    "processing_timestamp_iso": "2025-12-13T21:22:59.078Z",
+    "time_spent_on_page_seconds": 4.616,
+    "sequence_number": 2,
+    "session_id": "c8b9fe45-f2ed-461a-9221-47691136ea50",
+    "previous_timestamp_iso": "2025-12-13T21:22:57.046Z",
+    "event_params": {
+        "engaged_time": 5,
+        "page_title": "Title for page_13",
+        "traffic_source": "organic"
     }
 }
 ```
 
-Sample payload:
+Notes:
 
-```json
-
-```
+- Session windows use a 60s inactivity gap.
+- `time_spent_on_page_seconds` is the gap to the next event; the last event in a session falls back to `engaged_time` (if present) or 0.
 
 ## Architecture
 
@@ -123,29 +164,27 @@ Sample payload:
 
 ```mermaid
 flowchart LR
-    A[Web Pages Producer<br/>Container] -->|Publishes Events| B((Kafka Topic))
-    B -->|Streams Events| C[Web Analytics Subscriber<br/>Container]
+    A[Producer] -->|Publishes Events| B((Kafka Topic))
+    B -->|Streams Events| C[Beam Pipeline]
     C -->|Processes & Outputs| D[Stdout]
 ```
 
-- A Docker container executing a Python application to publish events into a Kafka topic within 5 seconds (based on a random uniform distribution). Each message is a JSON payload and the message is published with the `user id` as the key
+- Producer publishes JSON messages keyed by `user_id`.
+- Kafka broker is exposed internally as `kafka:9092` and to the host as `localhost:29092`.
 
 ### Pipeline Design
 
 ```mermaid
 flowchart LR
-
-Start --> Source
-Source(("Source<br>Producer")) --> | Publish Event | Read("Read Input") --> Filter("Filter")
-Filter --> |Include|Validate(Validate)
-Filter --> |Exclude|Discard(Discard)
-Validate --> |Valid|Window("Create Session")
-Validate --> |Invalid|Discard
-Window --> |1 Min Gap|Group("Group By User ID")
-Group --> |Print to Stdout|Result(Result)
-Discard --> End
-Result --> End
-
+    Start --> Source
+    Source(("Kafka\nConsumer")) --> Filter("Filter/Validate")
+    Filter -->|Valid| Window("Session Window\n(60s gap)")
+    Filter -->|Invalid| Discard("Discard")
+    Window --> Group("Group by User ID")
+    Group --> Enrich("Compute Dwell & Enrich")
+    Enrich --> Result("Emit to Stdout")
+    Result --> End
+    Discard --> End
 ```
 
 ---
@@ -168,22 +207,25 @@ This project is licensed under the terms of the [MIT License](LICENSE).
 To run tests:
 
 ```bash
-cd web-analytics-pages-viewed-java;
-mvn test;
+cd services/java-pipeline
+mvn test
 ```
 
-:soon: Tests have not yet been written for this repository. They will be written in a future release.
+Tests are not yet implemented; planned for a future release.
 
 ## Acknowledgements
 
-Author: Aaron Ginder | [aaronginder@hotmail.co.uk](mailto:aaronginder@hotmail.cp.uk)
+Author: Aaron Ginder | [aaronginder@hotmail.co.uk](mailto:aaronginder@hotmail.co.uk)
 
 ## Supporting References
 
 **Create Kafka topic:**
 
 ```bash
-docker exec kafka-node kafka-topics.sh --create --topic web-analytics-events --bootstrap-server localhost:9092 --partitions 1 --replication-factor 1
+docker exec kafka-node kafka-topics.sh --create \
+    --topic web-analytics-events \
+    --bootstrap-server localhost:9092 \
+    --partitions 1 --replication-factor 1
 ```
 
 **List Kafka topics:**
@@ -195,5 +237,8 @@ docker exec kafka-node kafka-topics.sh --list --bootstrap-server localhost:9092
 **Consume messages from topic:**
 
 ```bash
-docker exec kafka-node kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic web-analytics-events --from-beginning
+docker exec kafka-node kafka-console-consumer.sh \
+    --bootstrap-server localhost:9092 \
+    --topic web-analytics-events \
+    --from-beginning
 ```

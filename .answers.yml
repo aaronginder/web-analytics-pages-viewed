@@ -1,7 +1,7 @@
 project_name: "web-analytics-pages-viewed"
 project_description: >
-  "Processes synthetic web page view events and calculates the time a user has spent on 
-  the page in a streaming manner. Events will be emitted as outputs to show how long a 
+  "Processes synthetic web page view events and calculates the time a user has spent on
+  the page in a streaming manner. Events will be emitted as outputs to show how long a
   user has been viewing a page within a sequence."
 author_name: "Aaron Ginder"
 author_email: "aaronginder@hotmail.co.uk"
