@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import com.example.model.Event;
 import com.example.model.EventParams;
 
-/** Filters out test events where event_params.test_event == true. */
+// Filters out test events where event_params.test_event == true.
 public class FilterEvents extends PTransform<PCollection<KV<String, Event>>, PCollection<KV<String, Event>>> {
 
     @Override
