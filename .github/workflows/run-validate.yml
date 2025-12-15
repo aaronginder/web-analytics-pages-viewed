@@ -36,6 +36,9 @@ jobs:
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   analyse:
+
+    # Skip on forked PRs: fork tokens cannot read the base private repo
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-24.04
     permissions:
       security-events: write
