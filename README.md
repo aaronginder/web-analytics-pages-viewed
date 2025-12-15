@@ -219,10 +219,6 @@ mvn test
 
 Tests are not yet implemented; planned for a future release.
 
-## Acknowledgements
-
-Author: Aaron Ginder | [aaronginder@hotmail.co.uk](mailto:aaronginder@hotmail.co.uk)
-
 ## Supporting References
 
 **Create Kafka topic:**
@@ -248,3 +244,7 @@ docker exec kafka-node kafka-console-consumer.sh \
     --topic web-analytics-events \
     --from-beginning
 ```
+
+## Acknowledgements
+
+Author: Aaron Ginder | [aaronginder@hotmail.co.uk](mailto:aaronginder@hotmail.co.uk)
