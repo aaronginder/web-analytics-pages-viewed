@@ -27,7 +27,7 @@ permissions:
 jobs:
   lint-and-test:
     name: Lint and Test
-    uses: aaronginder/workflow-factory/.github/workflows/lint-and-test.yml@develop
+    uses: aaronginder/workflow-factory/.github/workflows/lint-and-test.yml@github-auth-app
     with:
       aws_role_arn: ${{ vars.AWS_ROLE_ARN }}
       bucket_name: aaronginder-tf-states
