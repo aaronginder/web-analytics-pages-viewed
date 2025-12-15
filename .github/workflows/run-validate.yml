@@ -27,7 +27,7 @@ permissions:
 jobs:
   lint-and-test:
     name: Lint and Test
-    uses: aaronginder/workflow-factory/.github/workflows/lint-and-test.yml@main
+    uses: aaronginder/workflow-factory/.github/workflows/lint-and-test.yml@fix-update-semantic-release-python
     with:
       aws_role_arn: ${{ vars.AWS_ROLE_ARN }}
       bucket_name: aaronginder-tf-states
@@ -35,27 +35,3 @@ jobs:
       project: aaronginder
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  analyse:
-    runs-on: ubuntu-24.04
-    permissions:
-      security-events: write
-
-    strategy:
-      fail-fast: false
-      matrix:
-        language:
-          - python
-          - java
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-          token: ${{ env.GITHUB_TOKEN }}
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: ${{ matrix.language }}
-      - uses: github/codeql-action/autobuild@v3
-      - uses: github/codeql-action/analyze@v3
